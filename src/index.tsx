@@ -17,6 +17,16 @@ const TextExtractor = NativeModules.TextExtractor
       }
     );
 
-export function multiply(a: number, b: number): Promise<number> {
-  return TextExtractor.multiply(a, b);
+interface TextBlock {
+  text: string;
+  frame: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+}
+
+export function extractTextAsync(uri: string): Promise<TextBlock[]> {
+  return TextExtractor.getTextFromImage(uri);
 }
