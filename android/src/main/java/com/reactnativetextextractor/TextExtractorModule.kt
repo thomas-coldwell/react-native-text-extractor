@@ -1,11 +1,8 @@
 package com.reactnativetextextractor
 
 import android.net.Uri
+import com.facebook.react.bridge.*
 import java.io.IOException
-import com.facebook.react.bridge.ReactApplicationContext
-import com.facebook.react.bridge.ReactContextBaseJavaModule
-import com.facebook.react.bridge.ReactMethod
-import com.facebook.react.bridge.Promise
 
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
@@ -23,23 +20,23 @@ class TextExtractorModule(reactContext: ReactApplicationContext) : ReactContextB
   @ReactMethod
   fun getTextFromImage(url: String, promise: Promise) {
     val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-    val image: InputImage
     try {
       val uri = Uri.parse(url)
-      image = InputImage.fromFilePath(reactApplicationContext, Uri.parse(url))
+      val image = InputImage.fromFilePath(reactApplicationContext, uri)
       recognizer.process(image).addOnSuccessListener { visionText ->
-        val response = mutableListOf<Any>()
+        val response = Arguments.createArray()
         for (block in visionText.textBlocks) {
-          val map = mutableMapOf(
-            "text" to block.text,
-            "frame" to mutableMapOf<String, Any?>(
-              "x" to block.boundingBox?.left,
-              "y" to block.boundingBox?.top,
-              "height" to block.boundingBox?.height(),
-              "width" to block.boundingBox?.width()
-            )
-          )
-          response.add(map)
+          val map = Arguments.createMap()
+          map.putString("text", block.text)
+          if (block.boundingBox != null) {
+            val frame = Arguments.createMap()
+            frame.putInt("x", block.boundingBox!!.left)
+            frame.putInt("y", block.boundingBox!!.top)
+            frame.putInt("height", block.boundingBox!!.height())
+            frame.putInt("width", block.boundingBox!!.width())
+            map.putMap("frame", frame)
+          }
+          response.pushMap(map)
         }
         promise.resolve(response)
       }.addOnFailureListener { e ->
@@ -48,8 +45,6 @@ class TextExtractorModule(reactContext: ReactApplicationContext) : ReactContextB
     } catch (e: IOException) {
       promise.reject(e)
     }
-    promise.resolve(url)
-
   }
 
 
